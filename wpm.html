@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Typer | Type Fast!</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --dark-color: #333;
+            --light-color: #f4f4f4;
+            --danger-color: #e74c3c;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark-color);
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        h2 {
+            color: var(--dark-color);
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+        
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .stat-box {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: 5px;
+            width: 48%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-box h3 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        
+        .stat-box .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .word-display {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .current-word {
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+        
+        .input-area {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        #word-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #word-input:focus {
+            border-color: var(--primary-color);
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-restart {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-restart:hover {
+            background-color: #27ae60;
+        }
+        
+        .message {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-height: 30px;
+        }
+        
+        .success {
+            color: var(--secondary-color);
+        }
+        
+        .error {
+            color: var(--danger-color);
+        }
+        
+        .countdown {
+            font-size: 1.5rem;
+            color: var(--danger-color);
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: var(--light-color);
+            border-radius: 5px;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .instructions p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .game-over {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .word-display {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Speed Typer</h1>
+        <h2>How fast can you type?</h2>
+        
+        <div class="stats-container">
+            <div class="stat-box">
+                <h3>Time</h3>
+                <div id="time" class="value">30</div>
+            </div>
+            <div class="stat-box">
+                <h3>Words</h3>
+                <div id="score" class="value">0</div>
+            </div>
+        </div>
+        
+        <div id="countdown" class="countdown hidden">Get Ready!</div>
+        
+        <div class="word-display">
+            <div id="current-word" class="current-word">Click Start to begin</div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="word-input" placeholder="Type here..." autocomplete="off" disabled>
+        </div>
+        
+        <button id="start-btn" class="btn">Start Game</button>
+        <button id="restart-btn" class="btn btn-restart hidden">Play Again</button>
+        
+        <div id="message" class="message"></div>
+        
+        <div id="game-over" class="game-over hidden"></div>
+        
+        <div class="instructions">
+            <h3>How to Play</h3>
+            <p>1. Click the "Start Game" button to begin.</p>
+            <p>2. Type the displayed word in the input field and press Enter or Space.</p>
+            <p>3. Type as many words as you can before the timer runs out!</p>
+            <p>4. Your score is the number of words you correctly type.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const wordInput = document.getElementById('word-input');
+        const currentWordDisplay = document.getElementById('current-word');
+        const scoreDisplay = document.getElementById('score');
+        const timeDisplay = document.getElementById('time');
+        const message = document.getElementById('message');
+        const startButton = document.getElementById('start-btn');
+        const restartButton = document.getElementById('restart-btn');
+        const countdownDisplay = document.getElementById('countdown');
+        const gameOverDisplay = document.getElementById('game-over');
+
+        // Game variables
+        let score = 0;
+        let time = 30;
+        let isPlaying = false;
+        let timer;
+        let currentWord = '';
+
+        // Word list - you can add more words
+        const words = [
+            'apple', 'banana', 'orange', 'pear', 'grape', 'kiwi', 'mango', 'lemon',
+            'computer', 'keyboard', 'mouse', 'monitor', 'laptop', 'desktop', 'tablet',
+            'javascript', 'html', 'css', 'python', 'java', 'ruby', 'php', 'swift',
+            'programming', 'developer', 'coder', 'software', 'application', 'website',
+            'algorithm', 'function', 'variable', 'constant', 'array', 'object', 'string',
+            'number', 'boolean', 'null', 'undefined', 'interface', 'class', 'method',
+            'property', 'event', 'callback', 'promise', 'async', 'await', 'fetch',
+            'request', 'response', 'server', 'client', 'database', 'storage', 'memory',
+            'network', 'internet', 'browser', 'mobile', 'desktop', 'cloud', 'security',
+            'password', 'username', 'login', 'logout', 'register', 'authentication',
+            'authorization', 'encryption', 'decryption', 'token', 'cookie', 'session'
+        ];
+
+        // Event listeners
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', restartGame);
+        wordInput.addEventListener('input', checkMatch);
+
+        // Initialize game
+        function init() {
+            score = 0;
+            time = 30;
+            isPlaying = false;
+            
+            // Reset displays
+            scoreDisplay.textContent = score;
+            timeDisplay.textContent = time;
+            message.textContent = '';
+            currentWordDisplay.textContent = 'Click Start to begin';
+            
+            // Show/hide elements
+            startButton.classList.remove('hidden');
+            restartButton.classList.add('hidden');
+            gameOverDisplay.classList.add('hidden');
+            countdownDisplay.classList.add('hidden');
+            
+            // Disable input
+            wordInput.disabled = true;
+            wordInput.value = '';
+        }
+
+        // Start game
+        function startGame() {
+            // Hide start button
+            startButton.classList.add('hidden');
+            
+            // Show countdown
+            countdownDisplay.classList.remove('hidden');
+            
+            // Countdown from 3
+            let count = 3;
+            countdownDisplay.textContent = count;
+            
+            const countdownTimer = setInterval(() => {
+                count--;
+                
+                if (count === 0) {
+                    countdownDisplay.textContent = 'GO!';
+                } else if (count < 0) {
+                    clearInterval(countdownTimer);
+                    countdownDisplay.classList.add('hidden');
+                    
+                    // Start the actual game
+                    isPlaying = true;
+                    wordInput.disabled = false;
+                    wordInput.focus();
+                    
+                    // Get random word
+                    showWord();
+                    
+                    // Start timer
+                    timer = setInterval(updateTime, 1000);
+                } else {
+                    countdownDisplay.textContent = count;
+                }
+            }, 1000);
+        }
+
+        // Show random word
+        function showWord() {
+            // Get random index
+            const randomIndex = Math.floor(Math.random() * words.length);
+            
+            // Get random word
+            currentWord = words[randomIndex];
+            
+            // Display word
+            currentWordDisplay.textContent = currentWord;
+        }
+
+        // Check if input matches current word
+        function checkMatch() {
+            if (!isPlaying) return;
+            
+            if (wordInput.value === currentWord) {
+                // Clear input
+                wordInput.value = '';
+                
+                // Increment score
+                score++;
+                scoreDisplay.textContent = score;
+                
+                // Show success message
+                message.textContent = 'Correct!';
+                message.className = 'message success';
+                
+                // Get new word
+                showWord();
+                
+                // Clear message after 1 second
+                setTimeout(() => {
+                    message.textContent = '';
+                }, 1000);
+            }
+        }
+
+        // Update time
+        function updateTime() {
+            if (time > 0) {
+                // Decrement time
+                time--;
+                
+                // Update display
+                timeDisplay.textContent = time;
+                
+                // Check if time is running out
+                if (time <= 5) {
+                    timeDisplay.style.color = 'var(--danger-color)';
+                }
+            } else {
+                // Game over
+                endGame();
+            }
+        }
+
+        // End game
+        function endGame() {
+            // Stop timer
+            clearInterval(timer);
+            
+            // Set game state
+            isPlaying = false;
+            
+            // Disable input
+            wordInput.disabled = true;
+            
+            // Show game over message
+            gameOverDisplay.textContent = `Game Over! You typed ${score} words!`;
+            gameOverDisplay.classList.remove('hidden');
+            
+            // Show restart button
+            restartButton.classList.remove('hidden');
+            
+            // Reset time display color
+            timeDisplay.style.color = 'var(--primary-color)';
+            
+            // Clear current word
+            currentWordDisplay.textContent = 'Game Over';
+        }
+
+        // Restart game
+        function restartGame() {
+            init();
+            startGame();
+        }
+
+        // Add event listener for Enter and Space keys
+        wordInput.addEventListener('keydown', function(e) {
+            if ((e.key === 'Enter' || e.key === ' ') && wordInput.value === currentWord) {
+                e.preventDefault(); // Prevent space from being added to input
+                checkMatch();
+            }
+        });
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
