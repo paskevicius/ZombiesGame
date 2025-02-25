@@ -66,11 +66,11 @@
     <script>
         // Three.js setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x2c3e50);
-        scene.fog = new THREE.Fog(0x2c3e50, 10, 100);
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.Fog(0x000000, 10, 50);
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.y = 1.6; // Player height
+        camera.position.set(0, 1.6, 0); // Player height
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -78,7 +78,7 @@
         document.body.appendChild(renderer.domElement);
         
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040);
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
         scene.add(ambientLight);
         
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -86,17 +86,175 @@
         directionalLight.castShadow = true;
         scene.add(directionalLight);
         
-        // Floor
-        const floorGeometry = new THREE.PlaneGeometry(100, 100);
-        const floorMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x333333,
-            roughness: 0.8,
-            metalness: 0.2
-        });
-        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
-        scene.add(floor);
+        // Add some point lights for atmosphere
+        const pointLight1 = new THREE.PointLight(0xffaa00, 1, 15);
+        pointLight1.position.set(8, 3, 8);
+        scene.add(pointLight1);
+        
+        const pointLight2 = new THREE.PointLight(0xffaa00, 1, 15);
+        pointLight2.position.set(-8, 3, -8);
+        scene.add(pointLight2);
+        
+        // Create room (inspired by Nacht der Untoten)
+        function createRoom() {
+            // Floor
+            const floorGeometry = new THREE.PlaneGeometry(30, 30);
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x333333,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+            
+            // Ceiling
+            const ceilingGeometry = new THREE.PlaneGeometry(30, 30);
+            const ceilingMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x222222,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.y = 4;
+            ceiling.receiveShadow = true;
+            scene.add(ceiling);
+            
+            // Walls
+            const wallMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x555555,
+                roughness: 0.7,
+                metalness: 0.2
+            });
+            
+            // North wall
+            const northWallGeometry = new THREE.BoxGeometry(30, 4, 0.5);
+            const northWall = new THREE.Mesh(northWallGeometry, wallMaterial);
+            northWall.position.set(0, 2, -15);
+            northWall.castShadow = true;
+            northWall.receiveShadow = true;
+            scene.add(northWall);
+            
+            // South wall
+            const southWallGeometry = new THREE.BoxGeometry(30, 4, 0.5);
+            const southWall = new THREE.Mesh(southWallGeometry, wallMaterial);
+            southWall.position.set(0, 2, 15);
+            southWall.castShadow = true;
+            southWall.receiveShadow = true;
+            scene.add(southWall);
+            
+            // East wall
+            const eastWallGeometry = new THREE.BoxGeometry(0.5, 4, 30);
+            const eastWall = new THREE.Mesh(eastWallGeometry, wallMaterial);
+            eastWall.position.set(15, 2, 0);
+            eastWall.castShadow = true;
+            eastWall.receiveShadow = true;
+            scene.add(eastWall);
+            
+            // West wall
+            const westWallGeometry = new THREE.BoxGeometry(0.5, 4, 30);
+            const westWall = new THREE.Mesh(westWallGeometry, wallMaterial);
+            westWall.position.set(-15, 2, 0);
+            westWall.castShadow = true;
+            westWall.receiveShadow = true;
+            scene.add(westWall);
+            
+            // Add interior walls to create rooms
+            const interiorWall1 = new THREE.Mesh(
+                new THREE.BoxGeometry(10, 4, 0.5),
+                wallMaterial
+            );
+            interiorWall1.position.set(-5, 2, -5);
+            interiorWall1.castShadow = true;
+            interiorWall1.receiveShadow = true;
+            scene.add(interiorWall1);
+            
+            const interiorWall2 = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 4, 10),
+                wallMaterial
+            );
+            interiorWall2.position.set(5, 2, 5);
+            interiorWall2.castShadow = true;
+            interiorWall2.receiveShadow = true;
+            scene.add(interiorWall2);
+            
+            // Add barriers (windows) where zombies can enter
+            createBarrier(-15, 2, -10, 'west');
+            createBarrier(15, 2, 10, 'east');
+            createBarrier(10, 2, 15, 'south');
+            createBarrier(-10, 2, -15, 'north');
+            
+            // Add collision objects for walls
+            const walls = [
+                // Outer walls
+                { min: new THREE.Vector3(-15.25, 0, -15.25), max: new THREE.Vector3(15.25, 4, -14.75) }, // North
+                { min: new THREE.Vector3(-15.25, 0, 14.75), max: new THREE.Vector3(15.25, 4, 15.25) },  // South
+                { min: new THREE.Vector3(14.75, 0, -15.25), max: new THREE.Vector3(15.25, 4, 15.25) },  // East
+                { min: new THREE.Vector3(-15.25, 0, -15.25), max: new THREE.Vector3(-14.75, 4, 15.25) }, // West
+                
+                // Interior walls
+                { min: new THREE.Vector3(-10, 0, -5.25), max: new THREE.Vector3(0, 4, -4.75) },  // Interior 1
+                { min: new THREE.Vector3(4.75, 0, 0), max: new THREE.Vector3(5.25, 4, 10) },     // Interior 2
+            ];
+            
+            return walls;
+        }
+        
+        // Create barrier (window)
+        function createBarrier(x, y, z, direction) {
+            const barrierMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8B4513,
+                roughness: 1.0,
+                metalness: 0.0
+            });
+            
+            // Create wooden planks for the barrier
+            const planks = [];
+            const plankWidth = 0.1;
+            const plankHeight = 0.8;
+            const plankDepth = 4;
+            
+            for (let i = 0; i < 6; i++) {
+                let plankGeometry;
+                let position = new THREE.Vector3(x, y + (i * 0.5) - 1, z);
+                let rotation = new THREE.Euler(0, 0, 0);
+                
+                if (direction === 'north' || direction === 'south') {
+                    plankGeometry = new THREE.BoxGeometry(plankDepth, plankHeight, plankWidth);
+                    rotation.z = Math.random() * 0.2 - 0.1;
+                } else {
+                    plankGeometry = new THREE.BoxGeometry(plankWidth, plankHeight, plankDepth);
+                    rotation.x = Math.random() * 0.2 - 0.1;
+                }
+                
+                const plank = new THREE.Mesh(plankGeometry, barrierMaterial);
+                plank.position.copy(position);
+                plank.rotation.copy(rotation);
+                plank.castShadow = true;
+                plank.receiveShadow = true;
+                scene.add(plank);
+                planks.push(plank);
+            }
+            
+            // Store barrier information
+            barriers.push({
+                position: new THREE.Vector3(x, y, z),
+                direction: direction,
+                planks: planks,
+                spawnPoint: true
+            });
+        }
+        
+        // Walls for collision detection
+        let walls = [];
+        
+        // Barriers where zombies can spawn
+        let barriers = [];
+        
+        // Create the room
+        walls = createRoom();
         
         // Controls
         const controls = new THREE.PointerLockControls(camera, document.body);
@@ -124,7 +282,8 @@
             speed: 0.15,
             bullets: [],
             canShoot: true,
-            shootCooldown: 500 // ms
+            shootCooldown: 500, // ms
+            position: new THREE.Vector3(0, 1.6, 0)
         };
         
         let zombies = [];
@@ -216,11 +375,28 @@
             const zombieMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
             const zombie = new THREE.Mesh(zombieGeometry, zombieMaterial);
             
-            // Random position around player
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 20 + Math.random() * 10;
-            zombie.position.x = camera.position.x + Math.cos(angle) * distance;
-            zombie.position.z = camera.position.z + Math.sin(angle) * distance;
+            // Choose a random barrier to spawn from
+            const barrier = barriers[Math.floor(Math.random() * barriers.length)];
+            
+            // Position zombie at the barrier
+            zombie.position.copy(barrier.position);
+            
+            // Adjust position based on barrier direction
+            switch (barrier.direction) {
+                case 'north':
+                    zombie.position.z -= 2;
+                    break;
+                case 'south':
+                    zombie.position.z += 2;
+                    break;
+                case 'east':
+                    zombie.position.x += 2;
+                    break;
+                case 'west':
+                    zombie.position.x -= 2;
+                    break;
+            }
+            
             zombie.position.y = 0.9; // Half height
             
             zombie.castShadow = true;
@@ -235,6 +411,21 @@
             });
         }
         
+        // Check collision with walls
+        function checkWallCollision(position, radius = 0.5) {
+            for (const wall of walls) {
+                if (position.x - radius < wall.max.x && 
+                    position.x + radius > wall.min.x && 
+                    position.y < wall.max.y && 
+                    position.y > wall.min.y && 
+                    position.z - radius < wall.max.z && 
+                    position.z + radius > wall.min.z) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
         function updateZombies() {
             for (let i = zombies.length - 1; i >= 0; i--) {
                 const zombie = zombies[i];
@@ -243,8 +434,15 @@
                 const direction = new THREE.Vector3();
                 direction.subVectors(camera.position, zombie.mesh.position).normalize();
                 
-                zombie.mesh.position.x += direction.x * zombie.speed;
-                zombie.mesh.position.z += direction.z * zombie.speed;
+                // Try to move
+                const newPosition = zombie.mesh.position.clone();
+                newPosition.x += direction.x * zombie.speed;
+                newPosition.z += direction.z * zombie.speed;
+                
+                // Check wall collision
+                if (!checkWallCollision(newPosition)) {
+                    zombie.mesh.position.copy(newPosition);
+                }
                 
                 // Look at player
                 zombie.mesh.lookAt(camera.position);
@@ -273,6 +471,13 @@
                 );
                 
                 bullet.distance += bullet.speed;
+                
+                // Check wall collision
+                if (checkWallCollision(bullet.mesh.position, 0.1)) {
+                    scene.remove(bullet.mesh);
+                    player.bullets.splice(i, 1);
+                    continue;
+                }
                 
                 // Remove if too far
                 if (bullet.distance > bullet.maxDistance) {
@@ -335,6 +540,9 @@
             zombiesKilled = 0;
             zombiesPerRound = 5;
             
+            // Reset player position
+            camera.position.set(0, 1.6, 0);
+            
             document.getElementById('round').textContent = round;
             document.getElementById('score').textContent = score;
             document.getElementById('health').textContent = player.health;
@@ -368,6 +576,23 @@
                 
                 if (moveForward || moveBackward) velocity.z -= direction.z * player.speed;
                 if (moveLeft || moveRight) velocity.x -= direction.x * player.speed;
+                
+                // Check collision before moving
+                const nextPosition = camera.position.clone();
+                if (velocity.x !== 0) {
+                    nextPosition.x -= velocity.x;
+                    if (checkWallCollision(nextPosition)) {
+                        velocity.x = 0;
+                    }
+                    nextPosition.x = camera.position.x;
+                }
+                
+                if (velocity.z !== 0) {
+                    nextPosition.z -= velocity.z;
+                    if (checkWallCollision(nextPosition)) {
+                        velocity.z = 0;
+                    }
+                }
                 
                 controls.moveRight(-velocity.x);
                 controls.moveForward(-velocity.z);
