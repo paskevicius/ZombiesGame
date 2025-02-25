@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Survival</title>
+    <style>
+        canvas {
+            border: 2px solid black;
+            background: #2c3e50;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #34495e;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        #stats {
+            color: white;
+            font-size: 20px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="stats">
+        Round: <span id="round">1</span> | 
+        Score: <span id="score">0</span> | 
+        Health: <span id="health">100</span>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game state
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            size: 20,
+            speed: 5,
+            health: 100
+        };
+
+        let zombies = [];
+        let bullets = [];
+        let round = 1;
+        let score = 0;
+        let zombiesKilled = 0;
+        let zombiesPerRound = 5;
+
+        // Controls
+        let keys = {
+            w: false,
+            s: false,
+            a: false,
+            d: false
+        };
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.key in keys) keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key in keys) keys[e.key] = false;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+            bullets.push({
+                x: player.x,
+                y: player.y,
+                dx: Math.cos(angle) * 10,
+                dy: Math.sin(angle) * 10,
+                size: 5
+            });
+        });
+
+        function spawnZombie() {
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            
+            switch(side) {
+                case 0: // top
+                    x = Math.random() * canvas.width;
+                    y = -20;
+                    break;
+                case 1: // right
+                    x = canvas.width + 20;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // bottom
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 20;
+                    break;
+                case 3: // left
+                    x = -20;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+
+            zombies.push({
+                x: x,
+                y: y,
+                size: 20,
+                speed: 1 + (round * 0.2)
+            });
+        }
+
+        function updatePlayer() {
+            if (keys.w && player.y > player.size) player.y -= player.speed;
+            if (keys.s && player.y < canvas.height - player.size) player.y += player.speed;
+            if (keys.a && player.x > player.size) player.x -= player.speed;
+            if (keys.d && player.x < canvas.width - player.size) player.x += player.speed;
+        }
+
+        function updateZombies() {
+            for (let zombie of zombies) {
+                const angle = Math.atan2(player.y - zombie.y, player.x - zombie.x);
+                zombie.x += Math.cos(angle) * zombie.speed;
+                zombie.y += Math.sin(angle) * zombie.speed;
+
+                // Check collision with player
+                const dx = player.x - zombie.x;
+                const dy = player.y - zombie.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < player.size + zombie.size) {
+                    player.health -= 1;
+                    document.getElementById('health').textContent = player.health;
+                    
+                    if (player.health <= 0) {
+                        alert(`Game Over! You reached round ${round} with ${score} points!`);
+                        resetGame();
+                    }
+                }
+            }
+        }
+
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].x += bullets[i].dx;
+                bullets[i].y += bullets[i].dy;
+
+                // Remove bullets that are off screen
+                if (bullets[i].x < 0 || bullets[i].x > canvas.width ||
+                    bullets[i].y < 0 || bullets[i].y > canvas.height) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with zombies
+                for (let j = zombies.length - 1; j >= 0; j--) {
+                    const dx = bullets[i].x - zombies[j].x;
+                    const dy = bullets[i].y - zombies[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < bullets[i].size + zombies[j].size) {
+                        zombies.splice(j, 1);
+                        bullets.splice(i, 1);
+                        score += 10;
+                        zombiesKilled++;
+                        document.getElementById('score').textContent = score;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function checkRound() {
+            if (zombiesKilled >= zombiesPerRound) {
+                round++;
+                zombiesKilled = 0;
+                zombiesPerRound += 3;
+                player.health = Math.min(player.health + 20, 100); // Heal between rounds
+                document.getElementById('round').textContent = round;
+                document.getElementById('health').textContent = player.health;
+            }
+        }
+
+        function resetGame() {
+            player.health = 100;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            zombies = [];
+            bullets = [];
+            round = 1;
+            score = 0;
+            zombiesKilled = 0;
+            zombiesPerRound = 5;
+            
+            document.getElementById('round').textContent = round;
+            document.getElementById('score').textContent = score;
+            document.getElementById('health').textContent = player.health;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw player
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw zombies
+            ctx.fillStyle = 'green';
+            for (let zombie of zombies) {
+                ctx.beginPath();
+                ctx.arc(zombie.x, zombie.y, zombie.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw bullets
+            ctx.fillStyle = 'yellow';
+            for (let bullet of bullets) {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function gameLoop() {
+            if (zombies.length < zombiesPerRound) {
+                spawnZombie();
+            }
+
+            updatePlayer();
+            updateZombies();
+            updateBullets();
+            checkRound();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
