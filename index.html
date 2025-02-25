@@ -409,6 +409,10 @@
                 speed: 0.03 + (round * 0.005),
                 health: 1
             });
+            
+            // Debug log to verify zombie creation
+            console.log(`Zombie created at position: ${zombie.position.x}, ${zombie.position.y}, ${zombie.position.z}`);
+            console.log(`Total zombies: ${zombies.length}`);
         }
         
         // Check collision with walls
@@ -599,6 +603,7 @@
                 
                 // Spawn zombies
                 if (zombies.length < zombiesPerRound) {
+                    console.log(`Attempting to spawn zombie. Current count: ${zombies.length}, Target: ${zombiesPerRound}`);
                     createZombie();
                 }
                 
