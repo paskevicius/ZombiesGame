@@ -169,6 +169,7 @@
                             <option value="1">Beginner</option>
                             <option value="2" selected>Intermediate</option>
                             <option value="3">Advanced</option>
+                            <option value="4">Magnus Carlsen</option>
                         </select>
                     </div>
                 </div>
@@ -250,9 +251,11 @@
                 // Random move for beginner
                 const randomIdx = Math.floor(Math.random() * possibleMoves.length);
                 move = game.move(possibleMoves[randomIdx]);
+            } else if (difficulty === 4) {
+                // Magnus Carlsen level - much deeper search and better evaluation
+                move = findGrandmasterMove();
             } else {
                 // For intermediate and advanced, use a slightly smarter approach
-                // This is a simplified version - a real chess AI would be more complex
                 move = findBestMove(difficulty);
             }
             
@@ -265,6 +268,219 @@
             // Update game status
             updateStatus();
             $('#thinking').hide();
+        }
+        
+        // Grandmaster level move finding (Magnus Carlsen mode)
+        function findGrandmasterMove() {
+            const MAX_DEPTH = 4; // Deeper search for better moves
+            
+            function minimax(depth, alpha, beta, isMaximizingPlayer) {
+                if (depth === 0) {
+                    return evaluatePositionGrandmaster(game.board());
+                }
+
+                const possibleMoves = game.moves();
+                
+                if (possibleMoves.length === 0) {
+                    // Checkmate or stalemate
+                    if (game.in_check()) {
+                        return isMaximizingPlayer ? -10000 : 10000; // Checkmate
+                    }
+                    return 0; // Stalemate
+                }
+                
+                // Sort moves to improve alpha-beta pruning efficiency
+                possibleMoves.sort(() => 0.5 - Math.random());
+                
+                if (isMaximizingPlayer) {
+                    let bestValue = -Infinity;
+                    for (let i = 0; i < possibleMoves.length; i++) {
+                        game.move(possibleMoves[i]);
+                        bestValue = Math.max(bestValue, minimax(depth - 1, alpha, beta, false));
+                        game.undo();
+                        alpha = Math.max(alpha, bestValue);
+                        if (beta <= alpha) break; // Alpha-beta pruning
+                    }
+                    return bestValue;
+                } else {
+                    let bestValue = Infinity;
+                    for (let i = 0; i < possibleMoves.length; i++) {
+                        game.move(possibleMoves[i]);
+                        bestValue = Math.min(bestValue, minimax(depth - 1, alpha, beta, true));
+                        game.undo();
+                        beta = Math.min(beta, bestValue);
+                        if (beta <= alpha) break; // Alpha-beta pruning
+                    }
+                    return bestValue;
+                }
+            }
+            
+            const possibleMoves = game.moves();
+            let bestMove = null;
+            let bestValue = -Infinity;
+            let alpha = -Infinity;
+            let beta = Infinity;
+            
+            for (let i = 0; i < possibleMoves.length; i++) {
+                game.move(possibleMoves[i]);
+                const value = minimax(MAX_DEPTH - 1, alpha, beta, false);
+                game.undo();
+                
+                if (value > bestValue) {
+                    bestValue = value;
+                    bestMove = possibleMoves[i];
+                }
+                alpha = Math.max(alpha, bestValue);
+            }
+            
+            return game.move(bestMove);
+        }
+        
+        // Advanced evaluation function for grandmaster level
+        function evaluatePositionGrandmaster(board) {
+            let totalEvaluation = 0;
+            
+            // Piece values (standard chess values)
+            const pieceValue = {
+                'p': 100,
+                'n': 320,
+                'b': 330,
+                'r': 500,
+                'q': 900,
+                'k': 20000
+            };
+            
+            // Piece-Square tables for positional understanding
+            const pawnTable = [
+                [0,  0,  0,  0,  0,  0,  0,  0],
+                [50, 50, 50, 50, 50, 50, 50, 50],
+                [10, 10, 20, 30, 30, 20, 10, 10],
+                [5,  5, 10, 25, 25, 10,  5,  5],
+                [0,  0,  0, 20, 20,  0,  0,  0],
+                [5, -5,-10,  0,  0,-10, -5,  5],
+                [5, 10, 10,-20,-20, 10, 10,  5],
+                [0,  0,  0,  0,  0,  0,  0,  0]
+            ];
+            
+            const knightTable = [
+                [-50,-40,-30,-30,-30,-30,-40,-50],
+                [-40,-20,  0,  0,  0,  0,-20,-40],
+                [-30,  0, 10, 15, 15, 10,  0,-30],
+                [-30,  5, 15, 20, 20, 15,  5,-30],
+                [-30,  0, 15, 20, 20, 15,  0,-30],
+                [-30,  5, 10, 15, 15, 10,  5,-30],
+                [-40,-20,  0,  5,  5,  0,-20,-40],
+                [-50,-40,-30,-30,-30,-30,-40,-50]
+            ];
+            
+            const bishopTable = [
+                [-20,-10,-10,-10,-10,-10,-10,-20],
+                [-10,  0,  0,  0,  0,  0,  0,-10],
+                [-10,  0, 10, 10, 10, 10,  0,-10],
+                [-10,  5,  5, 10, 10,  5,  5,-10],
+                [-10,  0,  5, 10, 10,  5,  0,-10],
+                [-10,  5,  5,  5,  5,  5,  5,-10],
+                [-10,  0,  5,  0,  0,  5,  0,-10],
+                [-20,-10,-10,-10,-10,-10,-10,-20]
+            ];
+            
+            const rookTable = [
+                [0,  0,  0,  0,  0,  0,  0,  0],
+                [5, 10, 10, 10, 10, 10, 10,  5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [0,  0,  0,  5,  5,  0,  0,  0]
+            ];
+            
+            const queenTable = [
+                [-20,-10,-10, -5, -5,-10,-10,-20],
+                [-10,  0,  0,  0,  0,  0,  0,-10],
+                [-10,  0,  5,  5,  5,  5,  0,-10],
+                [-5,  0,  5,  5,  5,  5,  0, -5],
+                [0,  0,  5,  5,  5,  5,  0, -5],
+                [-10,  5,  5,  5,  5,  5,  0,-10],
+                [-10,  0,  5,  0,  0,  0,  0,-10],
+                [-20,-10,-10, -5, -5,-10,-10,-20]
+            ];
+            
+            const kingMiddleTable = [
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-20,-30,-30,-40,-40,-30,-30,-20],
+                [-10,-20,-20,-20,-20,-20,-20,-10],
+                [20, 20,  0,  0,  0,  0, 20, 20],
+                [20, 30, 10,  0,  0, 10, 30, 20]
+            ];
+            
+            const kingEndTable = [
+                [-50,-40,-30,-20,-20,-30,-40,-50],
+                [-30,-20,-10,  0,  0,-10,-20,-30],
+                [-30,-10, 20, 30, 30, 20,-10,-30],
+                [-30,-10, 30, 40, 40, 30,-10,-30],
+                [-30,-10, 30, 40, 40, 30,-10,-30],
+                [-30,-10, 20, 30, 30, 20,-10,-30],
+                [-30,-30,  0,  0,  0,  0,-30,-30],
+                [-50,-30,-30,-30,-30,-30,-30,-50]
+            ];
+            
+            // Count material and apply positional bonuses
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const piece = board[i][j];
+                    if (piece !== null) {
+                        // Material value
+                        let value = pieceValue[piece.type];
+                        
+                        // Positional value
+                        if (piece.type === 'p') {
+                            value += pawnTable[piece.color === 'b' ? i : 7 - i][j];
+                        } else if (piece.type === 'n') {
+                            value += knightTable[piece.color === 'b' ? i : 7 - i][j];
+                        } else if (piece.type === 'b') {
+                            value += bishopTable[piece.color === 'b' ? i : 7 - i][j];
+                        } else if (piece.type === 'r') {
+                            value += rookTable[piece.color === 'b' ? i : 7 - i][j];
+                        } else if (piece.type === 'q') {
+                            value += queenTable[piece.color === 'b' ? i : 7 - i][j];
+                        } else if (piece.type === 'k') {
+                            // Use different tables for middle and endgame
+                            const isEndgame = isEndGame(board);
+                            if (isEndgame) {
+                                value += kingEndTable[piece.color === 'b' ? i : 7 - i][j];
+                            } else {
+                                value += kingMiddleTable[piece.color === 'b' ? i : 7 - i][j];
+                            }
+                        }
+                        
+                        totalEvaluation += piece.color === 'b' ? value : -value;
+                    }
+                }
+            }
+            
+            return totalEvaluation;
+        }
+        
+        // Helper function to determine if we're in an endgame
+        function isEndGame(board) {
+            let queens = 0;
+            let minors = 0;
+            
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const piece = board[i][j];
+                    if (piece !== null) {
+                        if (piece.type === 'q') queens++;
+                        if (piece.type === 'n' || piece.type === 'b') minors++;
+                    }
+                }
+            }
+            
+            return queens === 0 || (queens === 2 && minors <= 2);
         }
         
         // Simple AI to find the best move
